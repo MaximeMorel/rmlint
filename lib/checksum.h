@@ -52,7 +52,8 @@ typedef enum RmDigestType {
     /* special kids in town */
     RM_DIGEST_CUMULATIVE, /* hash([a, b]) = hash([b, a]) */
     RM_DIGEST_EXT,        /* read hash as string         */
-    RM_DIGEST_PARANOID    /* direct block comparisons    */
+    RM_DIGEST_PARANOID,   /* direct block comparisons    */
+    RM_DIGEST_NONE        /* do nothing, to do name comparison */
 } RmDigestType;
 
 typedef struct RmUint128 {

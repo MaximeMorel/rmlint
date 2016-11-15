@@ -64,8 +64,11 @@ static gint rm_file_cmp_without_extension(const RmFile *file_a, const RmFile *fi
 
 /* test if two files qualify for the same "group"; if not then rank them by
  * size and then other factors depending on settings */
-gint rm_file_cmp(const RmFile *file_a, const RmFile *file_b) {
+gint rm_file_cmp(const RmFile *file_a, const RmFile *file_b, const RmSession *session) {
     gint result = SIGN_DIFF(file_a->file_size, file_b->file_size);
+    if(session->cfg->checksum_type == RM_DIGEST_NONE) {
+        result = 0;
+    }
 
     RmCfg *cfg = file_a->session->cfg;
 
@@ -89,7 +92,7 @@ gint rm_file_cmp(const RmFile *file_a, const RmFile *file_b) {
 
 gint rm_file_cmp_full(const RmFile *file_a, const RmFile *file_b,
                       const RmSession *session) {
-    gint result = rm_file_cmp(file_a, file_b);
+    gint result = rm_file_cmp(file_a, file_b, session);
     if(result != 0) {
         return result;
     }
@@ -614,7 +617,7 @@ void rm_preprocess(RmSession *session) {
 
         /* get next file and check if it is part of the same group */
         file = g_queue_pop_head(all_files);
-        if(!file || rm_file_cmp(file, current_size_file) != 0) {
+        if(!file || rm_file_cmp(file, current_size_file, session) != 0) {
             /* process completed group (all same size & other criteria)*/
             /* remove path doubles and handle "other" lint */
 

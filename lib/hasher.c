@@ -236,6 +236,11 @@ static gint64 rm_hasher_unbuffered_read(RmHasher *hasher, GThreadPool *hashpipe,
         }
     }
 
+    if(hasher->digest_type == RM_DIGEST_NONE) {
+        start_offset = 0;
+        bytes_to_read = 0;
+    }
+
     /* how many buffers to read? */
     const gint16 N_BUFFERS = MIN(4, DIVIDE_CEIL(bytes_to_read, hasher->buf_size));
     struct iovec readvec[N_BUFFERS + 1];
@@ -454,6 +459,10 @@ gboolean rm_hasher_task_hash(RmHasherTask *task, char *path, guint64 start_offse
     } else {
         bytes_read = rm_hasher_unbuffered_read(task->hasher, task->hashpipe, task->digest,
                                                path, start_offset, bytes_to_read);
+    }
+
+    if(task->hasher->digest_type == RM_DIGEST_NONE) {
+        return TRUE;
     }
 
     return ((is_symlink && bytes_read == 0) || bytes_read == bytes_to_read);

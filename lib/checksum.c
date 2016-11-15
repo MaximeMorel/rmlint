@@ -174,6 +174,8 @@ RmDigestType rm_string_to_digest_type(const char *string) {
         return RM_DIGEST_CUMULATIVE;
     } else if(!strcasecmp(string, "paranoid")) {
         return RM_DIGEST_PARANOID;
+    } else if(!strcasecmp(string, "none")) {
+        return RM_DIGEST_NONE;
     } else {
         return RM_DIGEST_UNKNOWN;
     }
@@ -199,7 +201,8 @@ const char *rm_digest_type_to_string(RmDigestType type) {
                                   [RM_DIGEST_CUMULATIVE] = "cumulative",
                                   [RM_DIGEST_PARANOID] = "paranoid",
                                   [RM_DIGEST_FARMHASH] = "farmhash",
-                                  [RM_DIGEST_XXHASH] = "xxhash"};
+                                  [RM_DIGEST_XXHASH] = "xxhash",
+                                  [RM_DIGEST_NONE] = "none"};
 
     return names[MIN(type, sizeof(names) / sizeof(names[0]))];
 }
@@ -214,7 +217,7 @@ int rm_digest_type_to_multihash_id(RmDigestType type) {
                         [RM_DIGEST_BASTARD] = 9,   [RM_DIGEST_MURMUR512] = 10,
                         [RM_DIGEST_CITY512] = 11,  [RM_DIGEST_EXT] = 12,
                         [RM_DIGEST_FARMHASH] = 19, [RM_DIGEST_CUMULATIVE] = 13,
-                        [RM_DIGEST_PARANOID] = 14};
+                        [RM_DIGEST_PARANOID] = 14, [RM_DIGEST_NONE] = 20};
 
     return ids[MIN(type, sizeof(ids) / sizeof(ids[0]))];
 }
@@ -297,6 +300,9 @@ RmDigest *rm_digest_new(RmDigestType type, RmOff seed1, RmOff seed2, RmOff ext_s
                 rm_digest_new(RM_DIGEST_XXHASH, seed1, seed2, 0, false);
         }
         break;
+    case RM_DIGEST_NONE:
+        digest->bytes = 8;
+        break;
     default:
         rm_assert_gentle_not_reached();
     }
@@ -373,6 +379,7 @@ void rm_digest_free(RmDigest *digest) {
     case RM_DIGEST_FARMHASH:
     case RM_DIGEST_MURMUR:
     case RM_DIGEST_CITY:
+    case RM_DIGEST_NONE:
         if(digest->checksum) {
             g_slice_free1(digest->bytes, digest->checksum);
             digest->checksum = NULL;
@@ -477,6 +484,11 @@ void rm_digest_update(RmDigest *digest, const unsigned char *data, RmOff size) {
             ((guint8 *)digest->checksum)[i] += hash;
         }
     } break;
+    case RM_DIGEST_NONE:
+        digest->checksum[0].first = 0;
+        digest->checksum[0].second = 0;
+        //digest->bytes = 0;
+        break;
     case RM_DIGEST_PARANOID:
     default:
         rm_assert_gentle_not_reached();
@@ -590,6 +602,7 @@ RmDigest *rm_digest_copy(RmDigest *digest) {
     case RM_DIGEST_BASTARD:
     case RM_DIGEST_CUMULATIVE:
     case RM_DIGEST_EXT:
+    case RM_DIGEST_NONE:
         self = rm_digest_new(digest->type, 0, 0, digest->bytes, FALSE);
 
         if(self->checksum && digest->checksum) {
@@ -629,6 +642,7 @@ static gboolean rm_digest_needs_steal(RmDigestType digest_type) {
     case RM_DIGEST_CUMULATIVE:
     case RM_DIGEST_EXT:
     case RM_DIGEST_PARANOID:
+    case RM_DIGEST_NONE:
         return FALSE;
     default:
         rm_assert_gentle_not_reached();
